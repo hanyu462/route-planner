@@ -1,0 +1,4 @@
+pointcloud2_adapter_node:
+  ros__parameters:
+    input_topic: "/onboard/sensors/lidar/points"
+    remove_invalid_points: true
