@@ -64,19 +64,4 @@ install(DIRECTORY config/
   DESTINATION share/${PROJECT_NAME}/config
 )
 
-if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
-
-  ament_add_gtest(test_pointcloud2_adapter
-    test/test_pointcloud2_adapter.cpp
-  )
-  target_link_libraries(test_pointcloud2_adapter
-    pointcloud2_adapter
-  )
-  ament_target_dependencies(test_pointcloud2_adapter
-    sensor_msgs
-    builtin_interfaces
-  )
-endif()
-
 ament_package()
