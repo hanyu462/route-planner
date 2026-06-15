@@ -39,8 +39,20 @@ ament_target_dependencies(pointcloud2_adapter_node
   sensor_msgs
 )
 
+# ── debug node ───────────────────────────────────────────────────────────────
+add_executable(pointcloud2_debug_node
+  test/pointcloud2_debug_node.cpp
+)
+target_link_libraries(pointcloud2_debug_node
+  pointcloud2_adapter
+)
+ament_target_dependencies(pointcloud2_debug_node
+  rclcpp
+  sensor_msgs
+)
+
 # ── install ──────────────────────────────────────────────────────────────────
-install(TARGETS pointcloud2_adapter pointcloud2_adapter_node
+install(TARGETS pointcloud2_adapter pointcloud2_adapter_node pointcloud2_debug_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -51,5 +63,20 @@ install(DIRECTORY include/
 install(DIRECTORY config/
   DESTINATION share/${PROJECT_NAME}/config
 )
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_pointcloud2_adapter
+    test/test_pointcloud2_adapter.cpp
+  )
+  target_link_libraries(test_pointcloud2_adapter
+    pointcloud2_adapter
+  )
+  ament_target_dependencies(test_pointcloud2_adapter
+    sensor_msgs
+    builtin_interfaces
+  )
+endif()
 
 ament_package()
