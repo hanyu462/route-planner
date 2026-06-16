@@ -2,7 +2,7 @@
 
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
-#include "route_planner/core/point_cloud_xyz_frame.hpp"
+#include "route_planner/core/pointcloud_xyz_frame.hpp"
 
 namespace route_planner::ros2 {
 

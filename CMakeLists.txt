@@ -41,7 +41,7 @@ ament_target_dependencies(pointcloud2_adapter_node
 
 # ── debug node ───────────────────────────────────────────────────────────────
 add_executable(pointcloud2_debug_node
-  test/pointcloud2_debug_node.cpp
+  test/te-1.cpp
 )
 target_link_libraries(pointcloud2_debug_node
   pointcloud2_adapter

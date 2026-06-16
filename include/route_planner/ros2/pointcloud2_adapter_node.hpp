@@ -10,7 +10,7 @@
 
 #include "route_planner/ros2/pointcloud2_adapter.hpp"
 #include "route_planner/core/latest_buffer.hpp"
-#include "route_planner/core/point_cloud_xyz_frame.hpp"
+#include "route_planner/core/pointcloud_xyz_frame.hpp"
 
 using FrameBuffer = route_planner::core::LatestBuffer<route_planner::core::PointCloudXYZFrame>;
 
