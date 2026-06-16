@@ -56,7 +56,7 @@ ament_target_dependencies(pointcloud2_adapter_node
   sensor_msgs
 )
 
-# ── debug node ───────────────────────────────────────────────────────────────
+# ── debug node (te-1: raw frames) ────────────────────────────────────────────
 add_executable(pointcloud2_debug_node
   test/te-1.cpp
 )
@@ -68,8 +68,21 @@ ament_target_dependencies(pointcloud2_debug_node
   sensor_msgs
 )
 
+# ── processor node (te-2: processed frames) ───────────────────────────────────
+add_executable(pointcloud2_processor_node
+  test/te-2.cpp
+)
+target_link_libraries(pointcloud2_processor_node
+  pointcloud2_adapter
+  route_planner_core
+)
+ament_target_dependencies(pointcloud2_processor_node
+  rclcpp
+  sensor_msgs
+)
+
 # ── install ──────────────────────────────────────────────────────────────────
-install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node pointcloud2_debug_node
+install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node pointcloud2_debug_node pointcloud2_processor_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
