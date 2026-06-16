@@ -1,0 +1,22 @@
+transform:
+  enabled: true
+
+  offset_x: 0.0
+  offset_y: 0.0
+  offset_z: 1.2
+
+  invert_x: false
+  invert_y: false
+  invert_z: true
+
+filter:
+  enabled: true
+
+  min_x: -5.0
+  max_x:  5.0
+
+  min_y: -5.0
+  max_y:  5.0
+
+  min_z:  0.10
+  max_z:  1.50

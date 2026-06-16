@@ -1,3 +1,16 @@
+// [TE-1] Raw PointCloudXYZFrame 확인
+//
+// 목적:
+//   ROS2 PointCloud2 토픽을 수신해서 PointCloudXYZFrame으로 변환한 원시 데이터를 콘솔 출력
+//   transform / filter 적용 전 데이터 확인용
+//
+// 실행:
+//   ros2 run route_planner pointcloud2_debug_node
+//   --ros-args --params-file config/pointcloud2_adapter.yaml
+//
+// 출력:
+//   stamp_ns, frame_id, point_count, 상위 5개 포인트 x/y/z
+
 #include <cstdio>
 #include <chrono>
 #include <memory>

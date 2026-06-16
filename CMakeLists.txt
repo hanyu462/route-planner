@@ -13,6 +13,23 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
+# ── core library ─────────────────────────────────────────────────────────────
+add_library(route_planner_core
+  src/core/pointcloud_transform.cpp
+  src/core/pointcloud_filter.cpp
+  src/core/pointcloud_processor.cpp
+  src/core/pointcloud_processor_config.cpp
+  src/config/pointcloud_processor_yaml.cpp
+)
+target_include_directories(route_planner_core PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(route_planner_core
+  yaml-cpp
+)
 
 # ── adapter library ──────────────────────────────────────────────────────────
 add_library(pointcloud2_adapter
@@ -41,7 +58,7 @@ ament_target_dependencies(pointcloud2_adapter_node
 
 # ── debug node ───────────────────────────────────────────────────────────────
 add_executable(pointcloud2_debug_node
-  test/pointcloud2_debug_node.cpp
+  test/te-1.cpp
 )
 target_link_libraries(pointcloud2_debug_node
   pointcloud2_adapter
@@ -52,7 +69,7 @@ ament_target_dependencies(pointcloud2_debug_node
 )
 
 # ── install ──────────────────────────────────────────────────────────────────
-install(TARGETS pointcloud2_adapter pointcloud2_adapter_node pointcloud2_debug_node
+install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node pointcloud2_debug_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
