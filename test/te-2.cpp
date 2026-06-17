@@ -19,8 +19,10 @@
 #include <thread>
 
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 #include "route_planner/ros2/pointcloud2_adapter_node.hpp"
+#include "route_planner/ros2/pointcloud2_adapter.hpp"
 #include "route_planner/pointcloud/pointcloud_processor.hpp"
 #include "route_planner/config/pointcloud_processor_yaml.hpp"
 
@@ -59,6 +61,9 @@ int main(int argc, char** argv)
     route_planner::pointcloud::PointCloudProcessor processor{
         route_planner::config::load_processor_config(config_path)};
 
+    auto pub = node->create_publisher<sensor_msgs::msg::PointCloud2>(
+        "/route_planner/processed_points", rclcpp::SensorDataQoS());
+
     auto buffer = std::make_shared<FrameBuffer>();
     auto adapter = std::make_shared<PointCloud2AdapterNode>(buffer);
 
@@ -69,6 +74,7 @@ int main(int argc, char** argv)
         if (auto snap = buffer->read_if_new(last_seq)) {
             last_seq = snap->sequence;
             const auto processed = processor.process(*snap->value);
+            pub->publish(route_planner::ros2::convert_xyz_frame_to_pointcloud2(processed));
             print_frame(*snap->value, processed);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

@@ -15,4 +15,8 @@ route_planner::common::PointCloudXYZFrame convert_pointcloud2_to_xyz_frame(
     const PointCloud2AdapterOptions& options = PointCloud2AdapterOptions{}
 );
 
+sensor_msgs::msg::PointCloud2 convert_xyz_frame_to_pointcloud2(
+    const route_planner::common::PointCloudXYZFrame& frame
+);
+
 }  // namespace route_planner::ros2

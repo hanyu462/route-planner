@@ -3,20 +3,20 @@ transform:
 
   offset_x: 0.0
   offset_y: 0.0
-  offset_z: 1.2
+  offset_z: 0.0
 
-  invert_x: false
+  invert_x: true
   invert_y: false
-  invert_z: true
+  invert_z: false
 
 filter:
-  enabled: true
+  enabled: false
 
-  min_x: -5.0
-  max_x:  5.0
+  min_x: -10.0
+  max_x:  10.0
 
-  min_y: -5.0
-  max_y:  5.0
+  min_y: -10.0
+  max_y:  10.0
 
   min_z:  0.10
   max_z:  1.50
