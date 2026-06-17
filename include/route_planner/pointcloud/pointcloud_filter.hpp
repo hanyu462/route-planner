@@ -1,8 +1,8 @@
 #pragma once
 
-#include "route_planner/core/point_xyz.hpp"
+#include "route_planner/common/point_xyz.hpp"
 
-namespace route_planner::core {
+namespace route_planner::pointcloud {
 
 struct PointCloudFilterOptions {
     bool enabled;
@@ -18,7 +18,7 @@ struct PointCloudFilterOptions {
 };
 
 bool accept_point(
-    const PointXYZ& point,
+    const common::PointXYZ& point,
     const PointCloudFilterOptions& options) noexcept;
 
-}  // namespace route_planner::core
+}  // namespace route_planner::pointcloud

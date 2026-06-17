@@ -17,10 +17,10 @@ find_package(yaml-cpp REQUIRED)
 
 # ── core library ─────────────────────────────────────────────────────────────
 add_library(route_planner_core
-  src/core/pointcloud_transform.cpp
-  src/core/pointcloud_filter.cpp
-  src/core/pointcloud_processor.cpp
-  src/core/pointcloud_processor_config.cpp
+  src/pointcloud/pointcloud_transform.cpp
+  src/pointcloud/pointcloud_filter.cpp
+  src/pointcloud/pointcloud_processor.cpp
+  src/pointcloud/pointcloud_processor_config.cpp
   src/config/pointcloud_processor_yaml.cpp
 )
 target_include_directories(route_planner_core PUBLIC

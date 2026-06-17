@@ -21,11 +21,11 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include "route_planner/ros2/pointcloud2_adapter_node.hpp"
-#include "route_planner/core/pointcloud_processor.hpp"
+#include "route_planner/pointcloud/pointcloud_processor.hpp"
 #include "route_planner/config/pointcloud_processor_yaml.hpp"
 
-static void print_frame(const route_planner::core::PointCloudXYZFrame& raw,
-                        const route_planner::core::PointCloudXYZFrame& processed)
+static void print_frame(const route_planner::common::PointCloudXYZFrame& raw,
+                        const route_planner::common::PointCloudXYZFrame& processed)
 {
     std::printf("\n── PointCloudXYZFrame (processed) ──────\n");
     std::printf("  stamp_ns  : %ld\n", processed.stamp_ns);
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
         node->declare_parameter<std::string>("processor_config",
                                              "config/pointcloud_processor.yaml");
 
-    route_planner::core::PointCloudProcessor processor{
+    route_planner::pointcloud::PointCloudProcessor processor{
         route_planner::config::load_processor_config(config_path)};
 
     auto buffer = std::make_shared<FrameBuffer>();

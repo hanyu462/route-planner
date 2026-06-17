@@ -20,7 +20,7 @@
 
 #include "route_planner/ros2/pointcloud2_adapter_node.hpp"
 
-static void print_frame(const route_planner::core::PointCloudXYZFrame& frame)
+static void print_frame(const route_planner::common::PointCloudXYZFrame& frame)
 {
     std::printf("\n── PointCloudXYZFrame ──────────────────\n");
     std::printf("  stamp_ns : %ld\n",  frame.stamp_ns);

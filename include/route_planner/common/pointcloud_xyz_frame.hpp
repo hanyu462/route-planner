@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace route_planner::core {
+namespace route_planner::common {
 
 struct PointCloudXYZFrame {
     int64_t stamp_ns = 0;
@@ -23,4 +23,4 @@ struct PointCloudXYZFrame {
     }
 };
 
-}  // namespace route_planner::core
+}  // namespace route_planner::common

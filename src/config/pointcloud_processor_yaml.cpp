@@ -5,7 +5,7 @@
 
 namespace route_planner::config {
 
-core::PointCloudProcessorConfig load_processor_config(const std::string& yaml_path)
+pointcloud::PointCloudProcessorConfig load_processor_config(const std::string& yaml_path)
 {
     const YAML::Node root = YAML::LoadFile(yaml_path);
 
@@ -15,7 +15,7 @@ core::PointCloudProcessorConfig load_processor_config(const std::string& yaml_pa
     if (!t) throw std::runtime_error("Missing 'transform' section in " + yaml_path);
     if (!f) throw std::runtime_error("Missing 'filter' section in " + yaml_path);
 
-    core::PointCloudTransformOptions transform;
+    pointcloud::PointCloudTransformOptions transform;
     transform.enabled  = t["enabled"].as<bool>();
     transform.offset_x = t["offset_x"].as<float>();
     transform.offset_y = t["offset_y"].as<float>();
@@ -24,7 +24,7 @@ core::PointCloudProcessorConfig load_processor_config(const std::string& yaml_pa
     transform.invert_y = t["invert_y"].as<bool>();
     transform.invert_z = t["invert_z"].as<bool>();
 
-    core::PointCloudFilterOptions filter;
+    pointcloud::PointCloudFilterOptions filter;
     filter.enabled = f["enabled"].as<bool>();
     filter.min_x   = f["min_x"].as<float>();
     filter.max_x   = f["max_x"].as<float>();
@@ -33,8 +33,8 @@ core::PointCloudProcessorConfig load_processor_config(const std::string& yaml_pa
     filter.min_z   = f["min_z"].as<float>();
     filter.max_z   = f["max_z"].as<float>();
 
-    core::PointCloudProcessorConfig config{transform, filter};
-    core::validate_processor_config(config);
+    pointcloud::PointCloudProcessorConfig config{transform, filter};
+    pointcloud::validate_processor_config(config);
 
     return config;
 }

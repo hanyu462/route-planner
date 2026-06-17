@@ -1,6 +1,6 @@
 #pragma once
 
-namespace route_planner::core {
+namespace route_planner::common {
 
 struct PointXYZ {
     float x = 0.0F;
@@ -8,4 +8,4 @@ struct PointXYZ {
     float z = 0.0F;
 };
 
-}  // namespace route_planner::core
+}  // namespace route_planner::common

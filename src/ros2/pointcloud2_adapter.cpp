@@ -46,7 +46,7 @@ int64_t to_nanoseconds(const builtin_interfaces::msg::Time& stamp)
 
 namespace route_planner::ros2 {
 
-route_planner::core::PointCloudXYZFrame convert_pointcloud2_to_xyz_frame(
+route_planner::common::PointCloudXYZFrame convert_pointcloud2_to_xyz_frame(
     const sensor_msgs::msg::PointCloud2& msg,
     const PointCloud2AdapterOptions& options)
 {
@@ -55,7 +55,7 @@ route_planner::core::PointCloudXYZFrame convert_pointcloud2_to_xyz_frame(
         return {};
     }
 
-    route_planner::core::PointCloudXYZFrame frame;
+    route_planner::common::PointCloudXYZFrame frame;
     frame.stamp_ns = to_nanoseconds(msg.header.stamp);
     frame.frame_id = msg.header.frame_id;
 

@@ -1,8 +1,8 @@
-#include "route_planner/core/pointcloud_processor_config.hpp"
+#include "route_planner/pointcloud/pointcloud_processor_config.hpp"
 
 #include <stdexcept>
 
-namespace route_planner::core {
+namespace route_planner::pointcloud {
 
 void validate_processor_config(const PointCloudProcessorConfig& config)
 {
@@ -18,4 +18,4 @@ void validate_processor_config(const PointCloudProcessorConfig& config)
         throw std::invalid_argument("filter.min_z must not exceed filter.max_z");
 }
 
-}  // namespace route_planner::core
+}  // namespace route_planner::pointcloud

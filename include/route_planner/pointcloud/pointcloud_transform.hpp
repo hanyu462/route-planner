@@ -1,8 +1,8 @@
 #pragma once
 
-#include "route_planner/core/point_xyz.hpp"
+#include "route_planner/common/point_xyz.hpp"
 
-namespace route_planner::core {
+namespace route_planner::pointcloud {
 
 struct PointCloudTransformOptions {
     bool enabled;
@@ -16,8 +16,8 @@ struct PointCloudTransformOptions {
     bool invert_z;
 };
 
-PointXYZ transform_point(
-    const PointXYZ& point,
+common::PointXYZ transform_point(
+    const common::PointXYZ& point,
     const PointCloudTransformOptions& options) noexcept;
 
-}  // namespace route_planner::core
+}  // namespace route_planner::pointcloud

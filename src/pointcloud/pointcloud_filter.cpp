@@ -1,9 +1,9 @@
-#include "route_planner/core/pointcloud_filter.hpp"
+#include "route_planner/pointcloud/pointcloud_filter.hpp"
 
-namespace route_planner::core {
+namespace route_planner::pointcloud {
 
 bool accept_point(
-    const PointXYZ& point,
+    const common::PointXYZ& point,
     const PointCloudFilterOptions& options) noexcept
 {
     return point.x >= options.min_x && point.x <= options.max_x
@@ -11,4 +11,4 @@ bool accept_point(
         && point.z >= options.min_z && point.z <= options.max_z;
 }
 
-}  // namespace route_planner::core
+}  // namespace route_planner::pointcloud
