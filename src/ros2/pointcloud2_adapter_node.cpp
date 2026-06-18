@@ -10,7 +10,7 @@ int main(int argc, char** argv)
     rclcpp::init(argc, argv);
 
     try {
-        auto buffer = std::make_shared<FrameBuffer>();
+        auto buffer = std::make_shared<RawBuffer>();
         auto node   = std::make_shared<PointCloud2AdapterNode>(buffer);
         rclcpp::spin(node);
     } catch (const std::exception& e) {

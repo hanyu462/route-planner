@@ -6,7 +6,7 @@
 #include <optional>
 #include <utility>
 
-namespace route_planner::core {
+namespace route_planner::common {
 
 template <typename T>
 class LatestBuffer {
@@ -61,4 +61,4 @@ private:
     std::uint64_t sequence_ = 0;
 };
 
-}  // namespace route_planner::core
+}  // namespace route_planner::common

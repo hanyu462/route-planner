@@ -46,7 +46,7 @@ int64_t to_nanoseconds(const builtin_interfaces::msg::Time& stamp)
 
 namespace route_planner::ros2 {
 
-route_planner::core::PointCloudXYZFrame convert_pointcloud2_to_xyz_frame(
+route_planner::common::PointCloudXYZFrame convert_pointcloud2_to_xyz_frame(
     const sensor_msgs::msg::PointCloud2& msg,
     const PointCloud2AdapterOptions& options)
 {
@@ -55,7 +55,7 @@ route_planner::core::PointCloudXYZFrame convert_pointcloud2_to_xyz_frame(
         return {};
     }
 
-    route_planner::core::PointCloudXYZFrame frame;
+    route_planner::common::PointCloudXYZFrame frame;
     frame.stamp_ns = to_nanoseconds(msg.header.stamp);
     frame.frame_id = msg.header.frame_id;
 
@@ -77,6 +77,39 @@ route_planner::core::PointCloudXYZFrame convert_pointcloud2_to_xyz_frame(
     }
 
     return frame;
+}
+
+sensor_msgs::msg::PointCloud2 convert_xyz_frame_to_pointcloud2(
+    const route_planner::common::PointCloudXYZFrame& frame)
+{
+    sensor_msgs::msg::PointCloud2 msg;
+
+    msg.header.stamp.sec     = static_cast<int32_t>(frame.stamp_ns / 1'000'000'000LL);
+    msg.header.stamp.nanosec = static_cast<uint32_t>(frame.stamp_ns % 1'000'000'000LL);
+    msg.header.frame_id      = frame.frame_id;
+
+    msg.height     = 1;
+    msg.width      = static_cast<uint32_t>(frame.point_count());
+    msg.point_step = 12;
+    msg.row_step   = msg.point_step * msg.width;
+    msg.is_bigendian = false;
+    msg.is_dense     = true;
+
+    for (const auto& [name, offset] : std::initializer_list<std::pair<const char*, uint32_t>>{
+            {"x", 0}, {"y", 4}, {"z", 8}}) {
+        sensor_msgs::msg::PointField f;
+        f.name     = name;
+        f.offset   = offset;
+        f.datatype = sensor_msgs::msg::PointField::FLOAT32;
+        f.count    = 1;
+        msg.fields.push_back(f);
+    }
+
+    const std::size_t n_bytes = frame.xyz.size() * sizeof(float);
+    msg.data.resize(n_bytes);
+    std::memcpy(msg.data.data(), frame.xyz.data(), n_bytes);
+
+    return msg;
 }
 
 }  // namespace route_planner::ros2
