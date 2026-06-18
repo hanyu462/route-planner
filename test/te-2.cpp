@@ -1,13 +1,18 @@
-// [TE-2] Processed PointCloudXYZFrame 확인
+// [TE-2] Processed PointCloudXYZFrame 확인 + RViz2 시각화
 //
 // 목적:
-//   LatestBuffer에서 raw PointCloudXYZFrame을 읽어 PointCloudProcessor로 가공 후 콘솔 출력
-//   transform / filter 적용 후 데이터 확인용
+//   RawBuffer에서 PointCloudXYZFrame을 읽어 PointCloudProcessor로 가공 후
+//   ProcessedBuffer에 저장, ROS2 토픽 발행, 콘솔 출력
 //
 // 실행:
-//   ros2 run route_planner pointcloud2_processor_node
+//   ros2 run route_planner te_2_node
 //   --ros-args --params-file config/pointcloud2_adapter.yaml
-//   _processor_config:=config/pointcloud_processor.yaml
+//   -p processor_config:=config/pointcloud_processor.yaml
+//
+// RViz2:
+//   ros2 run rviz2 rviz2
+//   Fixed Frame: utlidar_lidar
+//   Add → PointCloud2 → Topic: /route_planner/processed_points
 //
 // 출력:
 //   raw point_count, processed point_count, 상위 5개 포인트 x/y/z
@@ -25,6 +30,8 @@
 #include "route_planner/ros2/pointcloud2_adapter.hpp"
 #include "route_planner/pointcloud/pointcloud_processor.hpp"
 #include "route_planner/config/pointcloud_processor_yaml.hpp"
+
+using route_planner::pointcloud::ProcessedBuffer;
 
 static void print_frame(const route_planner::common::PointCloudXYZFrame& raw,
                         const route_planner::common::PointCloudXYZFrame& processed)
@@ -64,16 +71,18 @@ int main(int argc, char** argv)
     auto pub = node->create_publisher<sensor_msgs::msg::PointCloud2>(
         "/route_planner/processed_points", rclcpp::SensorDataQoS());
 
-    auto buffer = std::make_shared<FrameBuffer>();
-    auto adapter = std::make_shared<PointCloud2AdapterNode>(buffer);
+    auto raw_buffer       = std::make_shared<RawBuffer>();
+    auto processed_buffer = std::make_shared<ProcessedBuffer>();
+    auto adapter = std::make_shared<PointCloud2AdapterNode>(raw_buffer);
 
     std::thread spin_thread([&adapter]() { rclcpp::spin(adapter); });
 
     uint64_t last_seq = 0;
     while (rclcpp::ok()) {
-        if (auto snap = buffer->read_if_new(last_seq)) {
+        if (auto snap = raw_buffer->read_if_new(last_seq)) {
             last_seq = snap->sequence;
             const auto processed = processor.process(*snap->value);
+            processed_buffer->write(processed);
             pub->publish(route_planner::ros2::convert_xyz_frame_to_pointcloud2(processed));
             print_frame(*snap->value, processed);
         }
