@@ -3,14 +3,14 @@ transform:
 
   offset_x: 0.0
   offset_y: 0.0
-  offset_z: 0.0
+  offset_z: 1.2
 
-  invert_x: true
-  invert_y: false
-  invert_z: false
+  invert_x: false
+  invert_y: true
+  invert_z: true
 
 filter:
-  enabled: false
+  enabled: true
 
   enable_x: true
   min_x: -10.0
@@ -21,7 +21,7 @@ filter:
   max_y:  10.0
 
   enable_z: true
-  min_z:  0.10
+  min_z:  0.15
   max_z:  1.50
 
   enable_radius: true
