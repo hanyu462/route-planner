@@ -1,0 +1,18 @@
+astar:
+  # Base traversal cost per cell (movement cost through free space)
+  base_cost: 1.0
+
+  # Cells with uint8 cost >= this value are treated as impassable.
+  # Set just below lethal_cost (254) so only lethal cells are blocked.
+  obs_cost: 253.0
+
+  # Heuristic weight: f = g + w*h.
+  # 1.0 = optimal (standard A*). >1.0 = faster search, slightly suboptimal path.
+  astar_weight: 1.2
+
+  # Maximum A* iterations before giving up and returning an empty path.
+  max_iterations: 1000000
+
+goal:
+  x: 2.0    # map frame (metres)
+  y: 0.0
