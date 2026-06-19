@@ -1,6 +1,6 @@
 #include "route_planner/ros2/pointcloud2_adapter.hpp"
+#include "route_planner/ros2/stamp_utils.hpp"
 
-#include <builtin_interfaces/msg/time.hpp>
 #include <sensor_msgs/msg/point_field.hpp>
 
 #include <cmath>
@@ -34,12 +34,6 @@ std::optional<XYZOffsets> find_xyz_offsets(
         return std::nullopt;
     }
     return offsets;
-}
-
-int64_t to_nanoseconds(const builtin_interfaces::msg::Time& stamp)
-{
-    return static_cast<int64_t>(stamp.sec) * 1'000'000'000LL +
-           static_cast<int64_t>(stamp.nanosec);
 }
 
 }  // namespace

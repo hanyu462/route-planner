@@ -56,7 +56,7 @@ int main(int argc, char** argv)
     auto pub = pub_node->create_publisher<sensor_msgs::msg::PointCloud2>(
         "/route_planner/raw_points", rclcpp::SensorDataQoS());
 
-    auto buffer = std::make_shared<RawBuffer>();
+    auto buffer = std::make_shared<PointCloudRawBuffer>();
     auto adapter = std::make_shared<PointCloud2AdapterNode>(buffer);
 
     std::thread spin_thread([&pub_node, &adapter]() {
