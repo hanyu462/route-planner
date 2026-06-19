@@ -14,14 +14,13 @@ OccupancyGridBuilder::OccupancyGridBuilder(OccupancyGridConfig config)
 }
 
 OccupancyGrid OccupancyGridBuilder::build(
-    const common::PointCloudXYZFrame& frame,
-    float robot_x, float robot_y) const
+    const common::PointCloudXYZFrame& frame) const
 {
     OccupancyGrid grid;
     grid.stamp_ns   = frame.stamp_ns;
     grid.frame_id   = frame.frame_id;
-    grid.origin_x   = origin_x_ + (config_.position_offset ? robot_x : 0.0f);
-    grid.origin_y   = origin_y_ + (config_.position_offset ? robot_y : 0.0f);
+    grid.origin_x   = origin_x_;
+    grid.origin_y   = origin_y_;
     grid.resolution = config_.resolution;
     grid.width      = width_;
     grid.height     = height_;

@@ -2,7 +2,7 @@
 //
 // 목적:
 //   TE-3에 PoseAdapterNode를 추가하여 로봇 위치를 grid origin에 반영.
-//   position_offset: true 시 로봇 위치를 읽어 builder.build()에 전달.
+//   align_to_pose_frame: true 시 로봇 위치를 읽어 builder.build()에 전달.
 //
 // 실행:
 //   ros2 run route_planner te_4_node
@@ -15,10 +15,10 @@
 //   ros2 run rviz2 rviz2
 //   Fixed Frame: utlidar_lidar
 //   Add → Map   → Topic: /route_planner/occupancy_grid
-//   Add → Pose  → Topic: /route_planner/pose  (position_offset: true 시)
+//   Add → Pose  → Topic: /route_planner/pose  (align_to_pose_frame: true 시)
 //
 // 출력:
-//   grid 크기, 해상도, occupied 셀 수, 로봇 위치/방향 (position_offset: true 시)
+//   grid 크기, 해상도, occupied 셀 수, 로봇 위치/방향 (align_to_pose_frame: true 시)
 
 #include <algorithm>
 #include <chrono>
@@ -75,18 +75,34 @@ static void print_grid(const route_planner::occupancy_grid::OccupancyGrid& grid,
 
 static nav_msgs::msg::OccupancyGrid to_ros_msg(
     const route_planner::occupancy_grid::OccupancyGrid& grid,
-    rclcpp::Clock& clock)
+    rclcpp::Clock& clock,
+    const route_planner::common::PoseXY* pose)
 {
     nav_msgs::msg::OccupancyGrid msg;
     msg.header.stamp    = clock.now();
-    msg.header.frame_id = grid.frame_id;
-
     msg.info.resolution = grid.resolution;
     msg.info.width      = static_cast<uint32_t>(grid.width);
     msg.info.height     = static_cast<uint32_t>(grid.height);
-    msg.info.origin.position.x = static_cast<double>(grid.origin_x);
-    msg.info.origin.position.y = static_cast<double>(grid.origin_y);
     msg.info.origin.position.z = 0.0;
+
+    if (pose) {
+        const float yaw = std::atan2(
+            2.0f * (pose->qw * pose->qz + pose->qx * pose->qy),
+            1.0f - 2.0f * (pose->qy * pose->qy + pose->qz * pose->qz));
+
+        msg.header.frame_id = pose->frame_id;
+        msg.info.origin.position.x = static_cast<double>(
+            pose->x + std::cos(yaw) * grid.origin_x - std::sin(yaw) * grid.origin_y);
+        msg.info.origin.position.y = static_cast<double>(
+            pose->y + std::sin(yaw) * grid.origin_x + std::cos(yaw) * grid.origin_y);
+        msg.info.origin.orientation.z = static_cast<double>(std::sin(yaw / 2.0f));
+        msg.info.origin.orientation.w = static_cast<double>(std::cos(yaw / 2.0f));
+    } else {
+        msg.header.frame_id = grid.frame_id;
+        msg.info.origin.position.x = static_cast<double>(grid.origin_x);
+        msg.info.origin.position.y = static_cast<double>(grid.origin_y);
+        msg.info.origin.orientation.w = 1.0;
+    }
 
     msg.data = grid.cells;
     return msg;
@@ -129,7 +145,7 @@ int main(int argc, char** argv)
     std::shared_ptr<PoseAdapterNode> uwb_node;
     std::thread                     uwb_spin_thread;
 
-    if (grid_config.position_offset) {
+    if (grid_config.align_to_pose_frame) {
         pos_buffer      = std::make_shared<PoseBuffer>();
         uwb_node        = std::make_shared<PoseAdapterNode>(pos_buffer);
         uwb_spin_thread = std::thread([&uwb_node]() { rclcpp::spin(uwb_node); });
@@ -140,15 +156,12 @@ int main(int argc, char** argv)
         if (auto snap = raw_buffer->read_if_new(last_proc_seq)) {
             last_proc_seq = snap->sequence;
 
-            float rx = 0.0f, ry = 0.0f;
             const route_planner::common::PoseXY* pose_ptr = nullptr;
             std::optional<route_planner::common::PoseXY> current_pose;
-            if (grid_config.position_offset && pos_buffer) {
+            if (grid_config.align_to_pose_frame && pos_buffer) {
                 if (auto pos = pos_buffer->read()) {
                     current_pose = *pos->value;
                     pose_ptr = &current_pose.value();
-                    rx = current_pose->x;
-                    ry = current_pose->y;
                     pose_pub->publish(
                         route_planner::ros2::convert_pose_xy_to_pose_stamped(*current_pose));
                 }
@@ -157,10 +170,10 @@ int main(int argc, char** argv)
             const auto processed = processor.process(*snap->value);
             processed_buffer->write(processed);
 
-            const auto grid = builder.build(processed, rx, ry);
+            const auto grid = builder.build(processed);
             grid_buffer->write(grid);
 
-            pub->publish(to_ros_msg(grid, *node->get_clock()));
+            pub->publish(to_ros_msg(grid, *node->get_clock(), pose_ptr));
             print_grid(grid, pose_ptr);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

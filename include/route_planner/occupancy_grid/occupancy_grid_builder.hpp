@@ -13,8 +13,7 @@ class OccupancyGridBuilder {
 public:
     explicit OccupancyGridBuilder(OccupancyGridConfig config);
 
-    OccupancyGrid build(const common::PointCloudXYZFrame& frame,
-                        float robot_x = 0.0f, float robot_y = 0.0f) const;
+    OccupancyGrid build(const common::PointCloudXYZFrame& frame) const;
 
 private:
     OccupancyGridConfig config_;
