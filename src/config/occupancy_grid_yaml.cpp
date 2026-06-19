@@ -14,8 +14,8 @@ occupancy_grid::OccupancyGridConfig load_occupancy_grid_config(const std::string
 
     if (!g["resolution"])
         throw std::runtime_error("Missing 'resolution' in " + yaml_path);
-    if (!g["position_offset"])
-        throw std::runtime_error("Missing 'position_offset' in " + yaml_path);
+    if (!g["align_to_pose_frame"])
+        throw std::runtime_error("Missing 'align_to_pose_frame' in " + yaml_path);
     if (!g["cell_values"])
         throw std::runtime_error("Missing 'cell_values' section in " + yaml_path);
     if (!g["min_x"] || !g["max_x"])
@@ -29,7 +29,7 @@ occupancy_grid::OccupancyGridConfig load_occupancy_grid_config(const std::string
 
     occupancy_grid::OccupancyGridConfig config;
     config.resolution      = g["resolution"].as<float>();
-    config.position_offset = g["position_offset"].as<bool>();
+    config.align_to_pose_frame = g["align_to_pose_frame"].as<bool>();
     config.cell_values     = {
         static_cast<int8_t>(cv["unknown"].as<int>()),
         static_cast<int8_t>(cv["free"].as<int>()),
