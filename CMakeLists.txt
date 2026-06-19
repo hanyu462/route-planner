@@ -27,6 +27,10 @@ add_library(route_planner_core
   src/occupancy_grid/occupancy_grid_config.cpp
   src/occupancy_grid/occupancy_grid_builder.cpp
   src/config/occupancy_grid_yaml.cpp
+  src/costmap/costmap_config.cpp
+  src/costmap/euclidean_distance_transform.cpp
+  src/costmap/costmap_builder.cpp
+  src/config/costmap_yaml.cpp
 )
 target_include_directories(route_planner_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -140,8 +144,24 @@ ament_target_dependencies(te_4_node
   geometry_msgs
 )
 
+# ── te-5-1 node (costmap) ────────────────────────────────────────────────────
+add_executable(te_5_1_node
+  test/te-5-1.cpp
+)
+target_link_libraries(te_5_1_node
+  pointcloud2_adapter
+  pose_adapter
+  route_planner_core
+)
+ament_target_dependencies(te_5_1_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  geometry_msgs
+)
+
 # ── install ──────────────────────────────────────────────────────────────────
-install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node pose_adapter pose_adapter_node te_1_node te_2_node te_3_node te_4_node
+install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node pose_adapter pose_adapter_node te_1_node te_2_node te_3_node te_4_node te_5_1_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

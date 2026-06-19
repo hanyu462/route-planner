@@ -21,7 +21,7 @@ filter:
   max_y:  10.0
 
   enable_z: true
-  min_z:  0.15
+  min_z:  0.2
   max_z:  1.50
 
   enable_radius: true

@@ -1,0 +1,21 @@
+costmap_builder:
+  # Distance from an occupied cell that is strictly impassable [m].
+  # Circular footprint approximation:
+  # robot radius 0.28 + localization error 0.07 + safety margin 0.05
+  lethal_radius: 0.3
+
+  # Maximum distance over which an obstacle adds traversal cost [m].
+  # Must be greater than lethal_radius.
+  influence_radius: 0.5
+
+  # Internal uint8 cost reserved for impassable cells.
+  # 255 may be reserved for unknown cells.
+  lethal_cost: 254
+
+  # Highest traversable cost, assigned immediately outside lethal_radius.
+  # Must be less than lethal_cost.
+  max_soft_cost: 200
+
+  # Exponential decay rate [1/m].
+  # Larger values concentrate the penalty closer to obstacles.
+  decay_factor: 30.0
