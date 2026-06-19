@@ -1,6 +1,6 @@
 occupancy_grid:
   resolution: 0.05        # meters per cell
-  position_offset: false  # if true, robot world position is added to grid origin
+  position_offset: true   # if true, robot world position is added to grid origin
 
   cell_values:
     unknown:  -1

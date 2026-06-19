@@ -12,11 +12,11 @@
 #include "route_planner/common/latest_buffer.hpp"
 #include "route_planner/common/pointcloud_xyz_frame.hpp"
 
-using RawBuffer = route_planner::common::LatestBuffer<route_planner::common::PointCloudXYZFrame>;
+using PointCloudRawBuffer = route_planner::common::LatestBuffer<route_planner::common::PointCloudXYZFrame>;
 
 class PointCloud2AdapterNode : public rclcpp::Node {
 public:
-    explicit PointCloud2AdapterNode(std::shared_ptr<RawBuffer> buffer)
+    explicit PointCloud2AdapterNode(std::shared_ptr<PointCloudRawBuffer> buffer)
         : Node("pointcloud2_adapter_node")
         , buffer_(std::move(buffer))
     {
@@ -48,7 +48,7 @@ private:
                 *msg, options_));
     }
 
-    std::shared_ptr<RawBuffer> buffer_;
+    std::shared_ptr<PointCloudRawBuffer> buffer_;
     route_planner::ros2::PointCloud2AdapterOptions options_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_;
 };

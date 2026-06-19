@@ -13,6 +13,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
@@ -85,6 +86,30 @@ ament_target_dependencies(te_2_node
   sensor_msgs
 )
 
+# ── pose adapter library ──────────────────────────────────────────────────────
+add_library(pose_adapter
+  src/ros2/pose_adapter.cpp
+)
+target_include_directories(pose_adapter PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(pose_adapter
+  geometry_msgs
+)
+
+# ── pose adapter node ─────────────────────────────────────────────────────────
+add_executable(pose_adapter_node
+  src/ros2/pose_adapter_node.cpp
+)
+target_link_libraries(pose_adapter_node
+  pose_adapter
+)
+ament_target_dependencies(pose_adapter_node
+  rclcpp
+  geometry_msgs
+)
+
 # ── te-3 node (occupancy grid) ───────────────────────────────────────────────
 add_executable(te_3_node
   test/te-3.cpp
@@ -99,8 +124,24 @@ ament_target_dependencies(te_3_node
   nav_msgs
 )
 
+# ── te-4 node (occupancy grid + UWB position offset) ─────────────────────────
+add_executable(te_4_node
+  test/te-4.cpp
+)
+target_link_libraries(te_4_node
+  pointcloud2_adapter
+  pose_adapter
+  route_planner_core
+)
+ament_target_dependencies(te_4_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  geometry_msgs
+)
+
 # ── install ──────────────────────────────────────────────────────────────────
-install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node te_1_node te_2_node te_3_node
+install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node pose_adapter pose_adapter_node te_1_node te_2_node te_3_node te_4_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

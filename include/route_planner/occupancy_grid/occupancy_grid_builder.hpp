@@ -7,7 +7,7 @@
 
 namespace route_planner::occupancy_grid {
 
-using GridBuffer = common::LatestBuffer<OccupancyGrid>;
+using OccupancyGridBuffer = common::LatestBuffer<OccupancyGrid>;
 
 class OccupancyGridBuilder {
 public:

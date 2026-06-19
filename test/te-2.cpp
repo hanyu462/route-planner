@@ -1,8 +1,8 @@
 // [TE-2] Processed PointCloudXYZFrame 확인 + RViz2 시각화
 //
 // 목적:
-//   RawBuffer에서 PointCloudXYZFrame을 읽어 PointCloudProcessor로 가공 후
-//   ProcessedBuffer에 저장, ROS2 토픽 발행, 콘솔 출력
+//   PointCloudRawBuffer에서 PointCloudXYZFrame을 읽어 PointCloudProcessor로 가공 후
+//   PointCloudProcessedBuffer에 저장, ROS2 토픽 발행, 콘솔 출력
 //
 // 실행:
 //   ros2 run route_planner te_2_node
@@ -31,7 +31,7 @@
 #include "route_planner/pointcloud/pointcloud_processor.hpp"
 #include "route_planner/config/pointcloud_processor_yaml.hpp"
 
-using route_planner::pointcloud::ProcessedBuffer;
+using route_planner::pointcloud::PointCloudProcessedBuffer;
 
 static void print_frame(const route_planner::common::PointCloudXYZFrame& raw,
                         const route_planner::common::PointCloudXYZFrame& processed)
@@ -71,8 +71,8 @@ int main(int argc, char** argv)
     auto pub = node->create_publisher<sensor_msgs::msg::PointCloud2>(
         "/route_planner/processed_points", rclcpp::SensorDataQoS());
 
-    auto raw_buffer       = std::make_shared<RawBuffer>();
-    auto processed_buffer = std::make_shared<ProcessedBuffer>();
+    auto raw_buffer       = std::make_shared<PointCloudRawBuffer>();
+    auto processed_buffer = std::make_shared<PointCloudProcessedBuffer>();
     auto adapter = std::make_shared<PointCloud2AdapterNode>(raw_buffer);
 
     std::thread spin_thread([&adapter]() { rclcpp::spin(adapter); });

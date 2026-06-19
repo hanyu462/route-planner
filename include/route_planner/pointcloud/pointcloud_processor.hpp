@@ -6,7 +6,7 @@
 
 namespace route_planner::pointcloud {
 
-using ProcessedBuffer = route_planner::common::LatestBuffer<route_planner::common::PointCloudXYZFrame>;
+using PointCloudProcessedBuffer = route_planner::common::LatestBuffer<route_planner::common::PointCloudXYZFrame>;
 
 class PointCloudProcessor {
 public:
