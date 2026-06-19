@@ -20,3 +20,5 @@ filter:
 
   min_z:  0.10
   max_z:  1.50
+
+  min_radius: 0.5
