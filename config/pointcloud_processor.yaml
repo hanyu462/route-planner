@@ -12,13 +12,17 @@ transform:
 filter:
   enabled: false
 
+  enable_x: true
   min_x: -10.0
   max_x:  10.0
 
+  enable_y: true
   min_y: -10.0
   max_y:  10.0
 
+  enable_z: true
   min_z:  0.10
   max_z:  1.50
 
+  enable_radius: true
   min_radius: 0.5
