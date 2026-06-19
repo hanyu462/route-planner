@@ -6,11 +6,18 @@ bool accept_point(
     const common::PointXYZ& point,
     const PointCloudFilterOptions& options) noexcept
 {
-    const float r2 = options.min_radius * options.min_radius;
-    return point.x >= options.min_x && point.x <= options.max_x
-        && point.y >= options.min_y && point.y <= options.max_y
-        && point.z >= options.min_z && point.z <= options.max_z
-        && (point.x * point.x + point.y * point.y) >= r2;
+    if (!options.enabled) return true;
+
+    if (options.enable_x && (point.x < options.min_x || point.x > options.max_x)) return false;
+    if (options.enable_y && (point.y < options.min_y || point.y > options.max_y)) return false;
+    if (options.enable_z && (point.z < options.min_z || point.z > options.max_z)) return false;
+
+    if (options.enable_radius) {
+        const float r2 = options.min_radius * options.min_radius;
+        if ((point.x * point.x + point.y * point.y) < r2) return false;
+    }
+
+    return true;
 }
 
 }  // namespace route_planner::pointcloud
