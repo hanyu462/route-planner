@@ -12,6 +12,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
@@ -22,6 +23,9 @@ add_library(route_planner_core
   src/pointcloud/pointcloud_processor.cpp
   src/pointcloud/pointcloud_processor_config.cpp
   src/config/pointcloud_processor_yaml.cpp
+  src/occupancy_grid/occupancy_grid_config.cpp
+  src/occupancy_grid/occupancy_grid_builder.cpp
+  src/config/occupancy_grid_yaml.cpp
 )
 target_include_directories(route_planner_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -81,8 +85,22 @@ ament_target_dependencies(te_2_node
   sensor_msgs
 )
 
+# ── te-3 node (occupancy grid) ───────────────────────────────────────────────
+add_executable(te_3_node
+  test/te-3.cpp
+)
+target_link_libraries(te_3_node
+  pointcloud2_adapter
+  route_planner_core
+)
+ament_target_dependencies(te_3_node
+  rclcpp
+  sensor_msgs
+  nav_msgs
+)
+
 # ── install ──────────────────────────────────────────────────────────────────
-install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node te_1_node te_2_node
+install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node te_1_node te_2_node te_3_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
