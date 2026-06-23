@@ -1,6 +1,6 @@
 # route-planner
 
-LiDAR PointCloud2 → OccupancyGrid → EDT Costmap → A* path planning, exposed to Python via pybind11.
+LiDAR PointCloud2 → OccupancyGrid → Euclidean Distance Transform (EDT) Costmap → A* path planning, exposed to Python via pybind11.
 
 ---
 
@@ -20,7 +20,7 @@ LiDAR PointCloud2 → OccupancyGrid → EDT Costmap → A* path planning, expose
 | T2 PointCloudProcessor | Downsample + range filter |
 | T3 PoseAdapter | Subscribes `/bridge/sensors/location` → `PoseXY` |
 | T4 OccupancyGridBuilder | PointCloud + Pose → map-aligned 2D grid |
-| T5 CostmapBuilder | EDT inflation costmap |
+| T5 CostmapBuilder | Euclidean Distance Transform (EDT) inflation costmap |
 | T6 AStarPlanner | Goal coordinate → path (`list[tuple[float, float]]`) |
 
 ---
