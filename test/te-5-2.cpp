@@ -204,11 +204,9 @@ int main(int argc, char** argv)
     std::shared_ptr<PoseAdapterNode> uwb_node;
     std::thread                      uwb_spin_thread;
 
-    if (grid_config.align_to_pose_frame) {
-        pos_buffer      = std::make_shared<PoseBuffer>();
-        uwb_node        = std::make_shared<PoseAdapterNode>(pos_buffer);
-        uwb_spin_thread = std::thread([&uwb_node]() { rclcpp::spin(uwb_node); });
-    }
+    pos_buffer      = std::make_shared<PoseBuffer>();
+    uwb_node        = std::make_shared<PoseAdapterNode>(pos_buffer);
+    uwb_spin_thread = std::thread([&uwb_node]() { rclcpp::spin(uwb_node); });
 
     uint64_t last_proc_seq = 0;
     while (rclcpp::ok()) {
@@ -217,13 +215,11 @@ int main(int argc, char** argv)
 
             const route_planner::common::PoseXY* pose_ptr = nullptr;
             std::optional<route_planner::common::PoseXY> current_pose;
-            if (grid_config.align_to_pose_frame && pos_buffer) {
-                if (auto pos = pos_buffer->read()) {
-                    current_pose = *pos->value;
-                    pose_ptr     = &current_pose.value();
-                    pose_pub->publish(
-                        route_planner::ros2::convert_pose_xy_to_pose_stamped(*current_pose));
-                }
+            if (auto pos = pos_buffer->read()) {
+                current_pose = *pos->value;
+                pose_ptr     = &current_pose.value();
+                pose_pub->publish(
+                    route_planner::ros2::convert_pose_xy_to_pose_stamped(*current_pose));
             }
 
             const auto processed = processor.process(*snap->value);
@@ -242,56 +238,22 @@ int main(int argc, char** argv)
             // ── A* path planning ─────────────────────────────────────────────
 
             {
-                const auto [goal_map_x, goal_map_y] = current_goal;
+                std::optional<route_planner::common::PoseXY> pose_opt =
+                    pose_ptr ? std::optional(*pose_ptr) : std::nullopt;
 
-                // Convert map-frame goal to robot-local (costmap) frame
-                float goal_local_x = goal_map_x;
-                float goal_local_y = goal_map_y;
-                std::string path_frame = grid.frame_id;
-
-                if (pose_ptr) {
-                    const float yaw = extract_yaw(*pose_ptr);
-                    const float dx  = goal_map_x - pose_ptr->x;
-                    const float dy  = goal_map_y - pose_ptr->y;
-                    goal_local_x    =  std::cos(yaw) * dx + std::sin(yaw) * dy;
-                    goal_local_y    = -std::sin(yaw) * dx + std::cos(yaw) * dy;
-                    path_frame      = pose_ptr->frame_id;
-                }
-
-                const auto path = planner.plan(costmap, 0.0f, 0.0f, goal_local_x, goal_local_y);
+                const auto result = planner.plan(costmap, current_goal, pose_opt);
 
                 nav_msgs::msg::Path path_msg;
                 path_msg.header.stamp    = node->get_clock()->now();
-                path_msg.header.frame_id = path_frame;
+                path_msg.header.frame_id = result.frame_id;
 
-                if (path.empty()) {
-                    std::printf("[A*] No path found (goal_local: %.2f, %.2f)\n",
-                                goal_local_x, goal_local_y);
-                } else {
-                    for (const auto& [lx, ly] : path) {
-                        geometry_msgs::msg::PoseStamped ps;
-                        ps.header = path_msg.header;
-                        ps.pose.orientation.w = 1.0;
-
-                        if (pose_ptr) {
-                            const float yaw = extract_yaw(*pose_ptr);
-                            ps.pose.position.x = static_cast<double>(
-                                pose_ptr->x + std::cos(yaw) * lx - std::sin(yaw) * ly);
-                            ps.pose.position.y = static_cast<double>(
-                                pose_ptr->y + std::sin(yaw) * lx + std::cos(yaw) * ly);
-                        } else {
-                            ps.pose.position.x = static_cast<double>(lx);
-                            ps.pose.position.y = static_cast<double>(ly);
-                        }
-                        path_msg.poses.push_back(ps);
-                    }
-
-                    const auto& first = path_msg.poses.front().pose.position;
-                    const auto& last  = path_msg.poses.back().pose.position;
-                    std::printf("[A*] path: %zu waypoints  "
-                                "start=(%.2f, %.2f)  goal=(%.2f, %.2f)\n",
-                                path_msg.poses.size(),
-                                first.x, first.y, last.x, last.y);
+                for (const auto& [x, y] : result.waypoints) {
+                    geometry_msgs::msg::PoseStamped ps;
+                    ps.header = path_msg.header;
+                    ps.pose.position.x    = static_cast<double>(x);
+                    ps.pose.position.y    = static_cast<double>(y);
+                    ps.pose.orientation.w = 1.0;
+                    path_msg.poses.push_back(ps);
                 }
 
                 path_pub->publish(path_msg);

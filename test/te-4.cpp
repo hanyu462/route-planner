@@ -145,11 +145,9 @@ int main(int argc, char** argv)
     std::shared_ptr<PoseAdapterNode> uwb_node;
     std::thread                     uwb_spin_thread;
 
-    if (grid_config.align_to_pose_frame) {
-        pos_buffer      = std::make_shared<PoseBuffer>();
-        uwb_node        = std::make_shared<PoseAdapterNode>(pos_buffer);
-        uwb_spin_thread = std::thread([&uwb_node]() { rclcpp::spin(uwb_node); });
-    }
+    pos_buffer      = std::make_shared<PoseBuffer>();
+    uwb_node        = std::make_shared<PoseAdapterNode>(pos_buffer);
+    uwb_spin_thread = std::thread([&uwb_node]() { rclcpp::spin(uwb_node); });
 
     uint64_t last_proc_seq = 0;
     while (rclcpp::ok()) {
@@ -158,13 +156,11 @@ int main(int argc, char** argv)
 
             const route_planner::common::PoseXY* pose_ptr = nullptr;
             std::optional<route_planner::common::PoseXY> current_pose;
-            if (grid_config.align_to_pose_frame && pos_buffer) {
-                if (auto pos = pos_buffer->read()) {
-                    current_pose = *pos->value;
-                    pose_ptr = &current_pose.value();
-                    pose_pub->publish(
-                        route_planner::ros2::convert_pose_xy_to_pose_stamped(*current_pose));
-                }
+            if (auto pos = pos_buffer->read()) {
+                current_pose = *pos->value;
+                pose_ptr = &current_pose.value();
+                pose_pub->publish(
+                    route_planner::ros2::convert_pose_xy_to_pose_stamped(*current_pose));
             }
 
             const auto processed = processor.process(*snap->value);
