@@ -1,0 +1,7 @@
+pipeline:
+  t1_pointcloud2_spin_hz: 100
+  t2_pose_spin_hz:        100
+  t3_processor_hz:         30
+  t4_occupancy_grid_hz:    30
+  t5_costmap_hz:           30
+  t6_astar_hz:             30

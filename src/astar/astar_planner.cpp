@@ -71,18 +71,6 @@ common::Path AStarPlanner::plan(
         path.waypoints = std::move(local_waypoints);
     }
 
-    if (!path.waypoints.empty()) {
-        const auto& first = path.waypoints.front();
-        const auto& last  = path.waypoints.back();
-        std::printf("[T6] path: %zu waypoints  start=(%.2f, %.2f)  goal=(%.2f, %.2f)\n",
-                    path.waypoints.size(),
-                    first.first, first.second,
-                    last.first,  last.second);
-    } else {
-        std::printf("[T6] No path found (goal_local: %.2f, %.2f)\n",
-                    goal_local_x, goal_local_y);
-    }
-
     return path;
 }
 
