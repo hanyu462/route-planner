@@ -12,7 +12,6 @@ struct CellValues {
 
 struct OccupancyGridConfig {
     float      resolution;       // meters per cell, > 0
-    bool       align_to_pose_frame;  // if true, publish grid in robot pose frame (e.g. map)
     CellValues cell_values;
 
     float min_x;

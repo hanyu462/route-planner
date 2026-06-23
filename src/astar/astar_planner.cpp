@@ -11,6 +11,13 @@ AStarPlanner::AStarPlanner(AStarConfig config)
     : config_(config)
 {}
 
+float AStarPlanner::extract_yaw(const common::PoseXY& p)
+{
+    return std::atan2(
+        2.0f * (p.qw * p.qz + p.qx * p.qy),
+        1.0f - 2.0f * (p.qy * p.qy + p.qz * p.qz));
+}
+
 std::pair<int,int> AStarPlanner::world_to_cell(
     const costmap::Costmap& m, float x, float y) const
 {
@@ -29,7 +36,45 @@ std::pair<float,float> AStarPlanner::cell_to_world(
     };
 }
 
-std::vector<std::pair<float,float>> AStarPlanner::plan(
+common::Path AStarPlanner::plan(
+    const costmap::Costmap&              costmap,
+    std::pair<float,float>               goal_map,
+    const std::optional<common::PoseXY>& pose
+) const
+{
+    common::Path path;
+    path.stamp_ns = costmap.stamp_ns;
+    path.frame_id = pose ? pose->frame_id : costmap.frame_id;
+
+    float goal_local_x = goal_map.first;
+    float goal_local_y = goal_map.second;
+
+    if (pose) {
+        const float yaw = extract_yaw(*pose);
+        const float dx  = goal_map.first  - pose->x;
+        const float dy  = goal_map.second - pose->y;
+        goal_local_x    =  std::cos(yaw) * dx + std::sin(yaw) * dy;
+        goal_local_y    = -std::sin(yaw) * dx + std::cos(yaw) * dy;
+    }
+
+    auto local_waypoints = plan_local(costmap, 0.0f, 0.0f, goal_local_x, goal_local_y);
+
+    if (pose && !local_waypoints.empty()) {
+        const float yaw = extract_yaw(*pose);
+        path.waypoints.reserve(local_waypoints.size());
+        for (const auto& [lx, ly] : local_waypoints) {
+            path.waypoints.emplace_back(
+                pose->x + std::cos(yaw) * lx - std::sin(yaw) * ly,
+                pose->y + std::sin(yaw) * lx + std::cos(yaw) * ly);
+        }
+    } else {
+        path.waypoints = std::move(local_waypoints);
+    }
+
+    return path;
+}
+
+std::vector<std::pair<float,float>> AStarPlanner::plan_local(
     const costmap::Costmap& costmap,
     float start_x, float start_y,
     float goal_x,  float goal_y
@@ -122,7 +167,6 @@ std::vector<std::pair<float,float>> AStarPlanner::plan(
 
     if (!found) return {};
 
-    // Reconstruct path from goal back to start, then reverse
     std::vector<std::pair<float,float>> path;
     for (int idx = goal_idx; idx != -1; idx = parent[idx]) {
         path.push_back(cell_to_world(costmap, idx % W, idx / W));

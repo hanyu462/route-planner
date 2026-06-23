@@ -3,11 +3,14 @@
 #include <cstdint>
 #include <vector>
 
+#include "route_planner/common/latest_buffer.hpp"
 #include "route_planner/costmap/costmap.hpp"
 #include "route_planner/costmap/costmap_config.hpp"
 #include "route_planner/occupancy_grid/occupancy_grid.hpp"
 
 namespace route_planner::costmap {
+
+using CostmapBuffer = common::LatestBuffer<Costmap>;
 
 class CostmapBuilder {
 public:

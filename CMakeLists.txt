@@ -34,6 +34,8 @@ add_library(route_planner_core
   src/astar/astar_config.cpp
   src/astar/astar_planner.cpp
   src/config/astar_yaml.cpp
+  src/pipeline/pipeline_config.cpp
+  src/config/pipeline_yaml.cpp
 )
 target_include_directories(route_planner_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -179,8 +181,40 @@ ament_target_dependencies(te_5_2_node
   geometry_msgs
 )
 
+# ── pipeline library ─────────────────────────────────────────────────────────
+add_library(route_planner_pipeline
+  src/pipeline/route_planner_pipeline.cpp
+)
+target_include_directories(route_planner_pipeline PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(route_planner_pipeline
+  route_planner_core
+  pointcloud2_adapter
+  pose_adapter
+)
+ament_target_dependencies(route_planner_pipeline
+  rclcpp
+  sensor_msgs
+  geometry_msgs
+)
+
+# ── te-6 node (RoutePlannerPipeline) ─────────────────────────────────────────
+add_executable(te_6_node
+  test/te-6.cpp
+)
+target_link_libraries(te_6_node
+  route_planner_pipeline
+)
+ament_target_dependencies(te_6_node
+  rclcpp
+  nav_msgs
+  geometry_msgs
+)
+
 # ── install ──────────────────────────────────────────────────────────────────
-install(TARGETS route_planner_core pointcloud2_adapter pointcloud2_adapter_node pose_adapter pose_adapter_node te_1_node te_2_node te_3_node te_4_node te_5_1_node te_5_2_node
+install(TARGETS route_planner_core route_planner_pipeline pointcloud2_adapter pointcloud2_adapter_node pose_adapter pose_adapter_node te_1_node te_2_node te_3_node te_4_node te_5_1_node te_5_2_node te_6_node
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
