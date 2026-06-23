@@ -56,17 +56,3 @@ pipeline.stop()
 
 Config files default to the `config/` directory. Pass constructor arguments to override paths.
 
----
-
-## Config
-
-Five YAML files under `config/` control each stage.
-
-| File | Stage |
-|---|---|
-| `pointcloud_processor.yaml` | T2 |
-| `occupancy_grid_builder.yaml` | T4 |
-| `costmap_builder.yaml` | T5 |
-| `astar.yaml` | T6 |
-| `pipeline.yaml` | Thread rates for the full pipeline |
-
