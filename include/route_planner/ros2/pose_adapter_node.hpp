@@ -21,11 +21,7 @@ public:
         , buffer_(std::move(buffer))
     {
         const std::string input_topic =
-            this->declare_parameter<std::string>("input_topic");
-
-        if (input_topic.empty()) {
-            throw std::invalid_argument("Parameter 'input_topic' must not be empty");
-        }
+            this->declare_parameter<std::string>("input_topic", "/bridge/sensors/location");
 
         sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
             input_topic,
