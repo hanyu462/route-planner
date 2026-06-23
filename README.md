@@ -6,7 +6,7 @@ LiDAR PointCloud2 → OccupancyGrid → Euclidean Distance Transform (EDT) Costm
 
 ## Architecture
 
-<!-- Full pipeline block diagram (T1–T6 thread chain, ROS2 topic I/O, pybind11 interface) -->
+![Architecture](docs/architecture.png)
 
 ---
 
