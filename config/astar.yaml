@@ -8,11 +8,7 @@ astar:
 
   # Heuristic weight: f = g + w*h.
   # 1.0 = optimal (standard A*). >1.0 = faster search, slightly suboptimal path.
-  astar_weight: 1.2
+  astar_weight: 1.0
 
   # Maximum A* iterations before giving up and returning an empty path.
   max_iterations: 1000000
-
-goal:
-  x: 2.0    # map frame (metres)
-  y: 0.0

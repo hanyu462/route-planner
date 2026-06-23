@@ -7,9 +7,6 @@ struct AStarConfig {
     float obs_cost;        // cells with uint8 cost >= this are impassable
     float astar_weight;    // heuristic weight: f = g + w*h  (>= 1.0)
     int   max_iterations;  // iteration cap; returns empty path if exceeded
-
-    float goal_x;          // goal in map frame (metres)
-    float goal_y;
 };
 
 void validate_astar_config(const AStarConfig& config);

@@ -2,7 +2,7 @@ costmap_builder:
   # Distance from an occupied cell that is strictly impassable [m].
   # Circular footprint approximation:
   # robot radius 0.28 + localization error 0.07 + safety margin 0.05
-  lethal_radius: 0.3
+  lethal_radius: 0.2
 
   # Maximum distance over which an obstacle adds traversal cost [m].
   # Must be greater than lethal_radius.
@@ -18,4 +18,4 @@ costmap_builder:
 
   # Exponential decay rate [1/m].
   # Larger values concentrate the penalty closer to obstacles.
-  decay_factor: 30.0
+  decay_factor: 50.0
