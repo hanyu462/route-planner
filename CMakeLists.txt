@@ -16,6 +16,11 @@ find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(pybind11 REQUIRED)
+
+# Required for linking static libs into pybind11 shared object
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # ── core library ─────────────────────────────────────────────────────────────
 add_library(route_planner_core
@@ -211,6 +216,21 @@ ament_target_dependencies(te_6_node
   rclcpp
   nav_msgs
   geometry_msgs
+)
+
+# ── pybind11 module ───────────────────────────────────────────────────────────
+pybind11_add_module(route_planner_py
+  src/python/route_planner_py.cpp
+)
+target_compile_definitions(route_planner_py PRIVATE
+  ROUTE_PLANNER_CONFIG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/config"
+)
+target_link_libraries(route_planner_py PRIVATE
+  route_planner_pipeline
+)
+
+install(TARGETS route_planner_py
+  LIBRARY DESTINATION lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages
 )
 
 # ── install ──────────────────────────────────────────────────────────────────
