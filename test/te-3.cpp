@@ -111,7 +111,10 @@ int main(int argc, char** argv)
             const auto processed = processor.process(*snap->value);
             processed_buffer->write(processed);
 
-            const auto grid = builder.build(processed);
+            route_planner::common::PoseXY origin_pose{};
+            origin_pose.frame_id = snap->value->frame_id;
+            origin_pose.qw = 1.0f;
+            const auto grid = builder.build(processed, origin_pose);
             grid_buffer->write(grid);
 
             pub->publish(to_ros_msg(grid, *node->get_clock()));

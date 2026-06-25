@@ -3,20 +3,19 @@
 // 목적:
 //   te-5-1 파이프라인에 AStarPlanner를 추가하여 Costmap 기반 A* 경로를 생성하고
 //   nav_msgs/Path로 퍼블리시한다.
-//   goal은 /route_planner/goal (geometry_msgs/PoseStamped) 토픽으로 외부에서 수신.
+//   goal은 launch parameter (goal_x, goal_y) 로 map frame 좌표를 지정한다.
 //
 // 실행:
-//   ros2 run route_planner te_5_2_node
-//   --ros-args --params-file config/pointcloud2_adapter.yaml
-//             --params-file config/pose_adapter.yaml
-//   -p processor_config:=config/pointcloud_processor.yaml
-//   -p grid_config:=config/occupancy_grid_builder.yaml
-//   -p costmap_config:=config/costmap_builder.yaml
-//   -p astar_config:=config/astar.yaml
-//
-// goal 퍼블리시 예시 (터미널):
-//   ros2 topic pub --once /route_planner/goal geometry_msgs/PoseStamped
-//     "{header: {frame_id: map}, pose: {position: {x: 2.0, y: 0.0}}}"
+//   ros2 run route_planner te_5_2_node \
+//     --ros-args \
+//     --params-file config/pointcloud2_adapter.yaml \
+//     --params-file config/pose_adapter.yaml \
+//     -p processor_config:=config/pointcloud_processor.yaml \
+//     -p grid_config:=config/occupancy_grid_builder.yaml \
+//     -p costmap_config:=config/costmap_builder.yaml \
+//     -p astar_config:=config/astar.yaml \
+//     -p goal_x:=5.25 \
+//     -p goal_y:=0.646
 //
 // RViz2:
 //   Fixed Frame: map
@@ -27,7 +26,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cmath>
 #include <cstdio>
 #include <memory>
 #include <optional>
@@ -58,41 +56,20 @@ using route_planner::occupancy_grid::OccupancyGridBuffer;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-static float extract_yaw(const route_planner::common::PoseXY& pose)
-{
-    return std::atan2(
-        2.0f * (pose.qw * pose.qz + pose.qx * pose.qy),
-        1.0f - 2.0f * (pose.qy * pose.qy + pose.qz * pose.qz));
-}
-
 static nav_msgs::msg::OccupancyGrid grid_to_ros_msg(
     const route_planner::occupancy_grid::OccupancyGrid& grid,
-    rclcpp::Clock& clock,
-    const route_planner::common::PoseXY* pose)
+    rclcpp::Clock& clock)
 {
     nav_msgs::msg::OccupancyGrid msg;
-    msg.header.stamp    = clock.now();
-    msg.info.resolution = grid.resolution;
-    msg.info.width      = static_cast<uint32_t>(grid.width);
-    msg.info.height     = static_cast<uint32_t>(grid.height);
-    msg.info.origin.position.z = 0.0;
-
-    if (pose) {
-        const float yaw = extract_yaw(*pose);
-        msg.header.frame_id = pose->frame_id;
-        msg.info.origin.position.x = static_cast<double>(
-            pose->x + std::cos(yaw) * grid.origin_x - std::sin(yaw) * grid.origin_y);
-        msg.info.origin.position.y = static_cast<double>(
-            pose->y + std::sin(yaw) * grid.origin_x + std::cos(yaw) * grid.origin_y);
-        msg.info.origin.orientation.z = static_cast<double>(std::sin(yaw / 2.0f));
-        msg.info.origin.orientation.w = static_cast<double>(std::cos(yaw / 2.0f));
-    } else {
-        msg.header.frame_id = grid.frame_id;
-        msg.info.origin.position.x = static_cast<double>(grid.origin_x);
-        msg.info.origin.position.y = static_cast<double>(grid.origin_y);
-        msg.info.origin.orientation.w = 1.0;
-    }
-
+    msg.header.stamp              = clock.now();
+    msg.header.frame_id           = grid.frame_id;
+    msg.info.resolution           = grid.resolution;
+    msg.info.width                = static_cast<uint32_t>(grid.width);
+    msg.info.height               = static_cast<uint32_t>(grid.height);
+    msg.info.origin.position.x    = static_cast<double>(grid.origin_x);
+    msg.info.origin.position.y    = static_cast<double>(grid.origin_y);
+    msg.info.origin.position.z    = 0.0;
+    msg.info.origin.orientation.w = 1.0;
     msg.data = grid.cells;
     return msg;
 }
@@ -100,32 +77,19 @@ static nav_msgs::msg::OccupancyGrid grid_to_ros_msg(
 static nav_msgs::msg::OccupancyGrid costmap_to_ros_msg(
     const route_planner::costmap::Costmap& costmap,
     rclcpp::Clock& clock,
-    const route_planner::common::PoseXY* pose,
     uint8_t lethal_cost,
     uint8_t max_soft_cost)
 {
     nav_msgs::msg::OccupancyGrid msg;
-    msg.header.stamp    = clock.now();
-    msg.info.resolution = costmap.resolution;
-    msg.info.width      = static_cast<uint32_t>(costmap.width);
-    msg.info.height     = static_cast<uint32_t>(costmap.height);
-    msg.info.origin.position.z = 0.0;
-
-    if (pose) {
-        const float yaw = extract_yaw(*pose);
-        msg.header.frame_id = pose->frame_id;
-        msg.info.origin.position.x = static_cast<double>(
-            pose->x + std::cos(yaw) * costmap.origin_x - std::sin(yaw) * costmap.origin_y);
-        msg.info.origin.position.y = static_cast<double>(
-            pose->y + std::sin(yaw) * costmap.origin_x + std::cos(yaw) * costmap.origin_y);
-        msg.info.origin.orientation.z = static_cast<double>(std::sin(yaw / 2.0f));
-        msg.info.origin.orientation.w = static_cast<double>(std::cos(yaw / 2.0f));
-    } else {
-        msg.header.frame_id = costmap.frame_id;
-        msg.info.origin.position.x = static_cast<double>(costmap.origin_x);
-        msg.info.origin.position.y = static_cast<double>(costmap.origin_y);
-        msg.info.origin.orientation.w = 1.0;
-    }
+    msg.header.stamp              = clock.now();
+    msg.header.frame_id           = costmap.frame_id;
+    msg.info.resolution           = costmap.resolution;
+    msg.info.width                = static_cast<uint32_t>(costmap.width);
+    msg.info.height               = static_cast<uint32_t>(costmap.height);
+    msg.info.origin.position.x    = static_cast<double>(costmap.origin_x);
+    msg.info.origin.position.y    = static_cast<double>(costmap.origin_y);
+    msg.info.origin.position.z    = 0.0;
+    msg.info.origin.orientation.w = 1.0;
 
     msg.data.resize(costmap.cells.size());
     for (std::size_t i = 0; i < costmap.cells.size(); ++i) {
@@ -213,11 +177,9 @@ int main(int argc, char** argv)
         if (auto snap = raw_buffer->read_if_new(last_proc_seq)) {
             last_proc_seq = snap->sequence;
 
-            const route_planner::common::PoseXY* pose_ptr = nullptr;
             std::optional<route_planner::common::PoseXY> current_pose;
             if (auto pos = pos_buffer->read()) {
                 current_pose = *pos->value;
-                pose_ptr     = &current_pose.value();
                 pose_pub->publish(
                     route_planner::ros2::convert_pose_xy_to_pose_stamped(*current_pose));
             }
@@ -225,38 +187,40 @@ int main(int argc, char** argv)
             const auto processed = processor.process(*snap->value);
             processed_buffer->write(processed);
 
-            const auto grid = grid_builder.build(processed);
-            grid_buffer->write(grid);
+            if (current_pose) {
+                const auto grid = grid_builder.build(processed, *current_pose);
+                grid_buffer->write(grid);
 
-            const auto costmap = costmap_builder.build(grid);
+                const auto costmap = costmap_builder.build(grid);
 
-            grid_pub->publish(grid_to_ros_msg(grid, *node->get_clock(), pose_ptr));
-            costmap_pub->publish(costmap_to_ros_msg(
-                costmap, *node->get_clock(), pose_ptr,
-                costmap_config.lethal_cost, costmap_config.max_soft_cost));
+                grid_pub->publish(grid_to_ros_msg(grid, *node->get_clock()));
+                costmap_pub->publish(costmap_to_ros_msg(
+                    costmap, *node->get_clock(),
+                    costmap_config.lethal_cost, costmap_config.max_soft_cost));
 
-            // ── A* path planning ─────────────────────────────────────────────
+                // ── A* path planning ─────────────────────────────────────────────
 
-            {
-                std::optional<route_planner::common::PoseXY> pose_opt =
-                    pose_ptr ? std::optional(*pose_ptr) : std::nullopt;
+                {
+                    const auto result = planner.plan(
+                        costmap,
+                        {current_pose->x, current_pose->y},
+                        current_goal);
 
-                const auto result = planner.plan(costmap, current_goal, pose_opt);
+                    nav_msgs::msg::Path path_msg;
+                    path_msg.header.stamp    = node->get_clock()->now();
+                    path_msg.header.frame_id = result.frame_id;
 
-                nav_msgs::msg::Path path_msg;
-                path_msg.header.stamp    = node->get_clock()->now();
-                path_msg.header.frame_id = result.frame_id;
+                    for (const auto& [x, y] : result.waypoints) {
+                        geometry_msgs::msg::PoseStamped ps;
+                        ps.header = path_msg.header;
+                        ps.pose.position.x    = static_cast<double>(x);
+                        ps.pose.position.y    = static_cast<double>(y);
+                        ps.pose.orientation.w = 1.0;
+                        path_msg.poses.push_back(ps);
+                    }
 
-                for (const auto& [x, y] : result.waypoints) {
-                    geometry_msgs::msg::PoseStamped ps;
-                    ps.header = path_msg.header;
-                    ps.pose.position.x    = static_cast<double>(x);
-                    ps.pose.position.y    = static_cast<double>(y);
-                    ps.pose.orientation.w = 1.0;
-                    path_msg.poses.push_back(ps);
+                    path_pub->publish(path_msg);
                 }
-
-                path_pub->publish(path_msg);
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

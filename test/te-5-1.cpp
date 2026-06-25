@@ -1,26 +1,27 @@
-// [TE-5-1] BFS Inflation 기반 Costmap 생성 및 RViz2 시각화
+// [TE-5-1] Costmap 생성 및 RViz2 시각화
 //
 // 목적:
 //   te-4 파이프라인에 CostmapBuilder를 추가하여 OccupancyGrid로부터
-//   BFS distance transform 기반 비용 맵을 생성하고 시각화한다.
-//   장애물 주변에 soft zone(비용이 높은 영역)이 형성되는지 확인한다.
+//   Euclidean Distance Transform 기반 비용 맵을 생성하고 시각화한다.
+//   장애물 주변에 lethal zone과 soft zone이 형성되는지 확인한다.
 //
 // 실행:
-//   ros2 run route_planner te_5_1_node
-//   --ros-args --params-file config/pointcloud2_adapter.yaml
-//             --params-file config/pose_adapter.yaml
-//   -p processor_config:=config/pointcloud_processor.yaml
-//   -p grid_config:=config/occupancy_grid_builder.yaml
-//   -p costmap_config:=config/costmap_builder.yaml
+//   ros2 run route_planner te_5_1_node \
+//     --ros-args \
+//     --params-file config/pointcloud2_adapter.yaml \
+//     --params-file config/pose_adapter.yaml \
+//     -p processor_config:=config/pointcloud_processor.yaml \
+//     -p grid_config:=config/occupancy_grid_builder.yaml \
+//     -p costmap_config:=config/costmap_builder.yaml
 //
 // RViz2:
-//   Fixed Frame: map (align_to_pose_frame: true 시)
-//   Add → Map → Topic: /route_planner/occupancy_grid  (이진 장애물 맵)
-//   Add → Map → Topic: /route_planner/costmap         (비용 분포, 0~100)
+//   Fixed Frame: map
+//   Add → Map  → Topic: /route_planner/occupancy_grid  (이진 장애물 맵)
+//   Add → Map  → Topic: /route_planner/costmap         (비용 분포, 0~100)
 //   Add → Pose → Topic: /route_planner/pose
 //
 // 출력:
-//   costmap 통계: 최대 비용, base_cost 초과 셀 수 (soft zone 크기)
+//   costmap 통계: lethal cells (cost >= lethal_cost), soft zone cells (0 < cost < lethal_cost)
 
 #include <algorithm>
 #include <chrono>
@@ -51,41 +52,20 @@ using route_planner::occupancy_grid::OccupancyGridBuffer;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-static float extract_yaw(const route_planner::common::PoseXY& pose)
-{
-    return std::atan2(
-        2.0f * (pose.qw * pose.qz + pose.qx * pose.qy),
-        1.0f - 2.0f * (pose.qy * pose.qy + pose.qz * pose.qz));
-}
-
 static nav_msgs::msg::OccupancyGrid grid_to_ros_msg(
     const route_planner::occupancy_grid::OccupancyGrid& grid,
-    rclcpp::Clock& clock,
-    const route_planner::common::PoseXY* pose)
+    rclcpp::Clock& clock)
 {
     nav_msgs::msg::OccupancyGrid msg;
-    msg.header.stamp    = clock.now();
-    msg.info.resolution = grid.resolution;
-    msg.info.width      = static_cast<uint32_t>(grid.width);
-    msg.info.height     = static_cast<uint32_t>(grid.height);
-    msg.info.origin.position.z = 0.0;
-
-    if (pose) {
-        const float yaw = extract_yaw(*pose);
-        msg.header.frame_id = pose->frame_id;
-        msg.info.origin.position.x = static_cast<double>(
-            pose->x + std::cos(yaw) * grid.origin_x - std::sin(yaw) * grid.origin_y);
-        msg.info.origin.position.y = static_cast<double>(
-            pose->y + std::sin(yaw) * grid.origin_x + std::cos(yaw) * grid.origin_y);
-        msg.info.origin.orientation.z = static_cast<double>(std::sin(yaw / 2.0f));
-        msg.info.origin.orientation.w = static_cast<double>(std::cos(yaw / 2.0f));
-    } else {
-        msg.header.frame_id = grid.frame_id;
-        msg.info.origin.position.x = static_cast<double>(grid.origin_x);
-        msg.info.origin.position.y = static_cast<double>(grid.origin_y);
-        msg.info.origin.orientation.w = 1.0;
-    }
-
+    msg.header.stamp              = clock.now();
+    msg.header.frame_id           = grid.frame_id;
+    msg.info.resolution           = grid.resolution;
+    msg.info.width                = static_cast<uint32_t>(grid.width);
+    msg.info.height               = static_cast<uint32_t>(grid.height);
+    msg.info.origin.position.x    = static_cast<double>(grid.origin_x);
+    msg.info.origin.position.y    = static_cast<double>(grid.origin_y);
+    msg.info.origin.position.z    = 0.0;
+    msg.info.origin.orientation.w = 1.0;
     msg.data = grid.cells;
     return msg;
 }
@@ -93,32 +73,19 @@ static nav_msgs::msg::OccupancyGrid grid_to_ros_msg(
 static nav_msgs::msg::OccupancyGrid costmap_to_ros_msg(
     const route_planner::costmap::Costmap& costmap,
     rclcpp::Clock& clock,
-    const route_planner::common::PoseXY* pose,
     uint8_t lethal_cost,
     uint8_t max_soft_cost)
 {
     nav_msgs::msg::OccupancyGrid msg;
-    msg.header.stamp    = clock.now();
-    msg.info.resolution = costmap.resolution;
-    msg.info.width      = static_cast<uint32_t>(costmap.width);
-    msg.info.height     = static_cast<uint32_t>(costmap.height);
-    msg.info.origin.position.z = 0.0;
-
-    if (pose) {
-        const float yaw = extract_yaw(*pose);
-        msg.header.frame_id = pose->frame_id;
-        msg.info.origin.position.x = static_cast<double>(
-            pose->x + std::cos(yaw) * costmap.origin_x - std::sin(yaw) * costmap.origin_y);
-        msg.info.origin.position.y = static_cast<double>(
-            pose->y + std::sin(yaw) * costmap.origin_x + std::cos(yaw) * costmap.origin_y);
-        msg.info.origin.orientation.z = static_cast<double>(std::sin(yaw / 2.0f));
-        msg.info.origin.orientation.w = static_cast<double>(std::cos(yaw / 2.0f));
-    } else {
-        msg.header.frame_id = costmap.frame_id;
-        msg.info.origin.position.x = static_cast<double>(costmap.origin_x);
-        msg.info.origin.position.y = static_cast<double>(costmap.origin_y);
-        msg.info.origin.orientation.w = 1.0;
-    }
+    msg.header.stamp              = clock.now();
+    msg.header.frame_id           = costmap.frame_id;
+    msg.info.resolution           = costmap.resolution;
+    msg.info.width                = static_cast<uint32_t>(costmap.width);
+    msg.info.height               = static_cast<uint32_t>(costmap.height);
+    msg.info.origin.position.x    = static_cast<double>(costmap.origin_x);
+    msg.info.origin.position.y    = static_cast<double>(costmap.origin_y);
+    msg.info.origin.position.z    = 0.0;
+    msg.info.origin.orientation.w = 1.0;
 
     // Normalize uint8 cell [0, lethal_cost] → int8 [0, 100] for RViz2
     msg.data.resize(costmap.cells.size());
@@ -209,11 +176,9 @@ int main(int argc, char** argv)
         if (auto snap = raw_buffer->read_if_new(last_proc_seq)) {
             last_proc_seq = snap->sequence;
 
-            const route_planner::common::PoseXY* pose_ptr = nullptr;
             std::optional<route_planner::common::PoseXY> current_pose;
             if (auto pos = pos_buffer->read()) {
                 current_pose = *pos->value;
-                pose_ptr     = &current_pose.value();
                 pose_pub->publish(
                     route_planner::ros2::convert_pose_xy_to_pose_stamped(*current_pose));
             }
@@ -221,17 +186,19 @@ int main(int argc, char** argv)
             const auto processed = processor.process(*snap->value);
             processed_buffer->write(processed);
 
-            const auto grid = grid_builder.build(processed);
-            grid_buffer->write(grid);
+            if (current_pose) {
+                const auto grid = grid_builder.build(processed, *current_pose);
+                grid_buffer->write(grid);
 
-            const auto costmap = costmap_builder.build(grid);
+                const auto costmap = costmap_builder.build(grid);
 
-            grid_pub->publish(grid_to_ros_msg(grid, *node->get_clock(), pose_ptr));
-            costmap_pub->publish(costmap_to_ros_msg(
-                costmap, *node->get_clock(), pose_ptr,
-                costmap_config.lethal_cost, costmap_config.max_soft_cost));
+                grid_pub->publish(grid_to_ros_msg(grid, *node->get_clock()));
+                costmap_pub->publish(costmap_to_ros_msg(
+                    costmap, *node->get_clock(),
+                    costmap_config.lethal_cost, costmap_config.max_soft_cost));
 
-            print_costmap(costmap, costmap_config.lethal_cost);
+                print_costmap(costmap, costmap_config.lethal_cost);
+            }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
