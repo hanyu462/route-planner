@@ -145,9 +145,12 @@ void RoutePlannerPipeline::run_t4()
 {
     while (running_) {
         const auto start = std::chrono::steady_clock::now();
-        if (auto snap = pointcloud_processed_buffer_->read()) {
-            occupancy_grid_buffer_->write(occupancy_grid_builder_.build(*snap->value));
-            t4_hz_.tick();
+        if (auto pc_snap = pointcloud_processed_buffer_->read()) {
+            if (auto pose_snap = pose_buffer_->read()) {
+                occupancy_grid_buffer_->write(
+                    occupancy_grid_builder_.build(*pc_snap->value, *pose_snap->value));
+                t4_hz_.tick();
+            }
         }
         const auto remaining = t4_sleep_ - (std::chrono::steady_clock::now() - start);
         if (remaining > std::chrono::nanoseconds::zero()) {
@@ -196,7 +199,10 @@ void RoutePlannerPipeline::run_t6()
 
             if (goal && pose) {
                 path_buffer_->write(
-                    astar_planner_.plan(*costmap_snap->value, *goal, pose));
+                    astar_planner_.plan(
+                        *costmap_snap->value,
+                        {pose->x, pose->y},
+                        *goal));
             }
         }
 

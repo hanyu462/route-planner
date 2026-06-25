@@ -166,11 +166,13 @@ int main(int argc, char** argv)
             const auto processed = processor.process(*snap->value);
             processed_buffer->write(processed);
 
-            const auto grid = builder.build(processed);
-            grid_buffer->write(grid);
+            if (current_pose) {
+                const auto grid = builder.build(processed, *current_pose);
+                grid_buffer->write(grid);
 
-            pub->publish(to_ros_msg(grid, *node->get_clock(), pose_ptr));
-            print_grid(grid, pose_ptr);
+                pub->publish(to_ros_msg(grid, *node->get_clock(), pose_ptr));
+                print_grid(grid, pose_ptr);
+            }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }

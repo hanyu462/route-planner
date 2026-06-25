@@ -225,38 +225,40 @@ int main(int argc, char** argv)
             const auto processed = processor.process(*snap->value);
             processed_buffer->write(processed);
 
-            const auto grid = grid_builder.build(processed);
-            grid_buffer->write(grid);
+            if (current_pose) {
+                const auto grid = grid_builder.build(processed, *current_pose);
+                grid_buffer->write(grid);
 
-            const auto costmap = costmap_builder.build(grid);
+                const auto costmap = costmap_builder.build(grid);
 
-            grid_pub->publish(grid_to_ros_msg(grid, *node->get_clock(), pose_ptr));
-            costmap_pub->publish(costmap_to_ros_msg(
-                costmap, *node->get_clock(), pose_ptr,
-                costmap_config.lethal_cost, costmap_config.max_soft_cost));
+                grid_pub->publish(grid_to_ros_msg(grid, *node->get_clock(), pose_ptr));
+                costmap_pub->publish(costmap_to_ros_msg(
+                    costmap, *node->get_clock(), pose_ptr,
+                    costmap_config.lethal_cost, costmap_config.max_soft_cost));
 
-            // ── A* path planning ─────────────────────────────────────────────
+                // ── A* path planning ─────────────────────────────────────────────
 
-            {
-                std::optional<route_planner::common::PoseXY> pose_opt =
-                    pose_ptr ? std::optional(*pose_ptr) : std::nullopt;
+                {
+                    const auto result = planner.plan(
+                        costmap,
+                        {current_pose->x, current_pose->y},
+                        current_goal);
 
-                const auto result = planner.plan(costmap, current_goal, pose_opt);
+                    nav_msgs::msg::Path path_msg;
+                    path_msg.header.stamp    = node->get_clock()->now();
+                    path_msg.header.frame_id = result.frame_id;
 
-                nav_msgs::msg::Path path_msg;
-                path_msg.header.stamp    = node->get_clock()->now();
-                path_msg.header.frame_id = result.frame_id;
+                    for (const auto& [x, y] : result.waypoints) {
+                        geometry_msgs::msg::PoseStamped ps;
+                        ps.header = path_msg.header;
+                        ps.pose.position.x    = static_cast<double>(x);
+                        ps.pose.position.y    = static_cast<double>(y);
+                        ps.pose.orientation.w = 1.0;
+                        path_msg.poses.push_back(ps);
+                    }
 
-                for (const auto& [x, y] : result.waypoints) {
-                    geometry_msgs::msg::PoseStamped ps;
-                    ps.header = path_msg.header;
-                    ps.pose.position.x    = static_cast<double>(x);
-                    ps.pose.position.y    = static_cast<double>(y);
-                    ps.pose.orientation.w = 1.0;
-                    path_msg.poses.push_back(ps);
+                    path_pub->publish(path_msg);
                 }
-
-                path_pub->publish(path_msg);
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

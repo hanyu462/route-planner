@@ -11,13 +11,6 @@ AStarPlanner::AStarPlanner(AStarConfig config)
     : config_(config)
 {}
 
-float AStarPlanner::extract_yaw(const common::PoseXY& p)
-{
-    return std::atan2(
-        2.0f * (p.qw * p.qz + p.qx * p.qy),
-        1.0f - 2.0f * (p.qy * p.qy + p.qz * p.qz));
-}
-
 std::pair<int,int> AStarPlanner::world_to_cell(
     const costmap::Costmap& m, float x, float y) const
 {
@@ -37,68 +30,34 @@ std::pair<float,float> AStarPlanner::cell_to_world(
 }
 
 common::Path AStarPlanner::plan(
-    const costmap::Costmap&              costmap,
-    std::pair<float,float>               goal_map,
-    const std::optional<common::PoseXY>& pose
-) const
-{
-    common::Path path;
-    path.stamp_ns = costmap.stamp_ns;
-    path.frame_id = pose ? pose->frame_id : costmap.frame_id;
-
-    float goal_local_x = goal_map.first;
-    float goal_local_y = goal_map.second;
-
-    if (pose) {
-        const float yaw = extract_yaw(*pose);
-        const float dx  = goal_map.first  - pose->x;
-        const float dy  = goal_map.second - pose->y;
-        goal_local_x    =  std::cos(yaw) * dx + std::sin(yaw) * dy;
-        goal_local_y    = -std::sin(yaw) * dx + std::cos(yaw) * dy;
-    }
-
-    auto local_waypoints = plan_local(costmap, 0.0f, 0.0f, goal_local_x, goal_local_y);
-
-    if (pose && !local_waypoints.empty()) {
-        const float yaw = extract_yaw(*pose);
-        path.waypoints.reserve(local_waypoints.size());
-        for (const auto& [lx, ly] : local_waypoints) {
-            path.waypoints.emplace_back(
-                pose->x + std::cos(yaw) * lx - std::sin(yaw) * ly,
-                pose->y + std::sin(yaw) * lx + std::cos(yaw) * ly);
-        }
-    } else {
-        path.waypoints = std::move(local_waypoints);
-    }
-
-    return path;
-}
-
-std::vector<std::pair<float,float>> AStarPlanner::plan_local(
     const costmap::Costmap& costmap,
-    float start_x, float start_y,
-    float goal_x,  float goal_y
+    std::pair<float,float>  start_map,
+    std::pair<float,float>  goal_map
 ) const
 {
     const int W = costmap.width;
     const int H = costmap.height;
     const int N = W * H;
 
-    const auto [sc, sr] = world_to_cell(costmap, start_x, start_y);
-    const auto [gc, gr] = world_to_cell(costmap, goal_x,  goal_y);
+    const auto [sc, sr] = world_to_cell(costmap, start_map.first, start_map.second);
+    const auto [gc, gr] = world_to_cell(costmap, goal_map.first,  goal_map.second);
 
     auto in_bounds = [&](int c, int r) {
         return c >= 0 && c < W && r >= 0 && r < H;
     };
 
-    if (!in_bounds(sc, sr) || !in_bounds(gc, gr)) return {};
+    common::Path path;
+    path.stamp_ns = costmap.stamp_ns;
+    path.frame_id = costmap.frame_id;
+
+    if (!in_bounds(sc, sr) || !in_bounds(gc, gr)) return path;
 
     const int   start_idx = sr * W + sc;
     const int   goal_idx  = gr * W + gc;
     const auto  obs       = static_cast<uint8_t>(config_.obs_cost);
 
-    if (start_idx == goal_idx) return {};
-    if (costmap.cells[start_idx] >= obs || costmap.cells[goal_idx] >= obs) return {};
+    if (start_idx == goal_idx) return path;
+    if (costmap.cells[start_idx] >= obs || costmap.cells[goal_idx] >= obs) return path;
 
     constexpr float kInf = std::numeric_limits<float>::infinity();
     std::vector<float> g(N, kInf);
@@ -165,13 +124,12 @@ std::vector<std::pair<float,float>> AStarPlanner::plan_local(
         }
     }
 
-    if (!found) return {};
+    if (!found) return path;
 
-    std::vector<std::pair<float,float>> path;
     for (int idx = goal_idx; idx != -1; idx = parent[idx]) {
-        path.push_back(cell_to_world(costmap, idx % W, idx / W));
+        path.waypoints.push_back(cell_to_world(costmap, idx % W, idx / W));
     }
-    std::reverse(path.begin(), path.end());
+    std::reverse(path.waypoints.begin(), path.waypoints.end());
     return path;
 }
 

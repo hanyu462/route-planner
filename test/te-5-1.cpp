@@ -221,17 +221,19 @@ int main(int argc, char** argv)
             const auto processed = processor.process(*snap->value);
             processed_buffer->write(processed);
 
-            const auto grid = grid_builder.build(processed);
-            grid_buffer->write(grid);
+            if (current_pose) {
+                const auto grid = grid_builder.build(processed, *current_pose);
+                grid_buffer->write(grid);
 
-            const auto costmap = costmap_builder.build(grid);
+                const auto costmap = costmap_builder.build(grid);
 
-            grid_pub->publish(grid_to_ros_msg(grid, *node->get_clock(), pose_ptr));
-            costmap_pub->publish(costmap_to_ros_msg(
-                costmap, *node->get_clock(), pose_ptr,
-                costmap_config.lethal_cost, costmap_config.max_soft_cost));
+                grid_pub->publish(grid_to_ros_msg(grid, *node->get_clock(), pose_ptr));
+                costmap_pub->publish(costmap_to_ros_msg(
+                    costmap, *node->get_clock(), pose_ptr,
+                    costmap_config.lethal_cost, costmap_config.max_soft_cost));
 
-            print_costmap(costmap, costmap_config.lethal_cost);
+                print_costmap(costmap, costmap_config.lethal_cost);
+            }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
