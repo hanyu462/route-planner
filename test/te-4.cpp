@@ -1,24 +1,24 @@
-// [TE-4] 로봇 위치 offset 적용 OccupancyGrid 확인 + RViz2 시각화
+// [TE-4] 로봇 위치 기반 Map Frame OccupancyGrid 확인 + RViz2 시각화
 //
 // 목적:
-//   TE-3에 PoseAdapterNode를 추가하여 로봇 위치를 grid origin에 반영.
-//   align_to_pose_frame: true 시 로봇 위치를 읽어 builder.build()에 전달.
+//   PoseAdapterNode로 UWB 위치를 읽어 OccupancyGrid를 map frame으로 생성.
+//   grid.origin = (pose.x + min_x, pose.y + min_y) 로 로봇 중심 맵 구성.
 //
 // 실행:
-//   ros2 run route_planner te_4_node
-//   --ros-args --params-file config/pointcloud2_adapter.yaml
-//             --params-file config/pose_adapter.yaml
-//   -p processor_config:=config/pointcloud_processor.yaml
-//   -p grid_config:=config/occupancy_grid_builder.yaml
+//   ros2 run route_planner te_4_node \
+//     --ros-args \
+//     --params-file config/pointcloud2_adapter.yaml \
+//     --params-file config/pose_adapter.yaml \
+//     -p processor_config:=config/pointcloud_processor.yaml \
+//     -p grid_config:=config/occupancy_grid_builder.yaml
 //
 // RViz2:
-//   ros2 run rviz2 rviz2
-//   Fixed Frame: utlidar_lidar
-//   Add → Map   → Topic: /route_planner/occupancy_grid
-//   Add → Pose  → Topic: /route_planner/pose  (align_to_pose_frame: true 시)
+//   Fixed Frame: map
+//   Add → Map  → Topic: /route_planner/occupancy_grid
+//   Add → Pose → Topic: /route_planner/pose
 //
 // 출력:
-//   grid 크기, 해상도, occupied 셀 수, 로봇 위치/방향 (align_to_pose_frame: true 시)
+//   grid 크기, 해상도, occupied 셀 수, 로봇 위치/방향
 
 #include <algorithm>
 #include <chrono>
@@ -75,35 +75,18 @@ static void print_grid(const route_planner::occupancy_grid::OccupancyGrid& grid,
 
 static nav_msgs::msg::OccupancyGrid to_ros_msg(
     const route_planner::occupancy_grid::OccupancyGrid& grid,
-    rclcpp::Clock& clock,
-    const route_planner::common::PoseXY* pose)
+    rclcpp::Clock& clock)
 {
     nav_msgs::msg::OccupancyGrid msg;
-    msg.header.stamp    = clock.now();
-    msg.info.resolution = grid.resolution;
-    msg.info.width      = static_cast<uint32_t>(grid.width);
-    msg.info.height     = static_cast<uint32_t>(grid.height);
-    msg.info.origin.position.z = 0.0;
-
-    if (pose) {
-        const float yaw = std::atan2(
-            2.0f * (pose->qw * pose->qz + pose->qx * pose->qy),
-            1.0f - 2.0f * (pose->qy * pose->qy + pose->qz * pose->qz));
-
-        msg.header.frame_id = pose->frame_id;
-        msg.info.origin.position.x = static_cast<double>(
-            pose->x + std::cos(yaw) * grid.origin_x - std::sin(yaw) * grid.origin_y);
-        msg.info.origin.position.y = static_cast<double>(
-            pose->y + std::sin(yaw) * grid.origin_x + std::cos(yaw) * grid.origin_y);
-        msg.info.origin.orientation.z = static_cast<double>(std::sin(yaw / 2.0f));
-        msg.info.origin.orientation.w = static_cast<double>(std::cos(yaw / 2.0f));
-    } else {
-        msg.header.frame_id = grid.frame_id;
-        msg.info.origin.position.x = static_cast<double>(grid.origin_x);
-        msg.info.origin.position.y = static_cast<double>(grid.origin_y);
-        msg.info.origin.orientation.w = 1.0;
-    }
-
+    msg.header.stamp        = clock.now();
+    msg.header.frame_id     = grid.frame_id;
+    msg.info.resolution     = grid.resolution;
+    msg.info.width          = static_cast<uint32_t>(grid.width);
+    msg.info.height         = static_cast<uint32_t>(grid.height);
+    msg.info.origin.position.x  = static_cast<double>(grid.origin_x);
+    msg.info.origin.position.y  = static_cast<double>(grid.origin_y);
+    msg.info.origin.position.z  = 0.0;
+    msg.info.origin.orientation.w = 1.0;
     msg.data = grid.cells;
     return msg;
 }
@@ -170,7 +153,7 @@ int main(int argc, char** argv)
                 const auto grid = builder.build(processed, *current_pose);
                 grid_buffer->write(grid);
 
-                pub->publish(to_ros_msg(grid, *node->get_clock(), pose_ptr));
+                pub->publish(to_ros_msg(grid, *node->get_clock()));
                 print_grid(grid, pose_ptr);
             }
         }
